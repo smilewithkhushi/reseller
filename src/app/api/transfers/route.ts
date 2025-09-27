@@ -1,5 +1,6 @@
 // app/api/transfers/route.ts
 import { PrismaClient } from '@/generated/prisma'
+import { notificationService } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 
 const prisma = new PrismaClient()
@@ -42,7 +43,12 @@ export async function POST(request: NextRequest) {
         product: { select: { id: true, name: true } }
       }
     })
-
+ await notificationService.sendTransferPending(buyerId, {
+      productName: transfer.product.name,
+      productId: transfer.productId,
+      certificateId: transfer.certificateId,
+      sellerName: transfer.seller.username || transfer.seller.address
+    })
     // Create audit log
     await prisma.auditLog.create({
       data: {

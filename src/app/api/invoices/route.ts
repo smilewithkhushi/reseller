@@ -1,5 +1,6 @@
 // app/api/invoices/route.ts
 import { PrismaClient } from '@/generated/prisma'
+import { notificationService } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 
 
@@ -50,7 +51,15 @@ export async function POST(request: NextRequest) {
         product: { select: { id: true, name: true } }
       }
     })
-
+    await notificationService.sendInvoiceReceived(buyerId, {
+      productName: invoice.product.name,
+      productId: invoice.productId,
+      invoiceId: invoice.invoiceId,
+      amount: invoice.amount,
+      currency: invoice.currency,
+      sellerName: invoice.seller.username || invoice.seller.address,
+      dueDate: invoice.dueDate
+    })
     // Create audit log
     await prisma.auditLog.create({
       data: {

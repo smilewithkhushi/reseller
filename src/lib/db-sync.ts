@@ -1,8 +1,8 @@
 // lib/db-sync.ts - Blockchain synchronization utility
 
-import { createPublicClient, http, parseAbiItem, getContract } from 'viem'
+import { CONTRACT_ABI } from '@/config/contract'
+import { createPublicClient, getContract, http, parseAbiItem } from 'viem'
 import { polygon, polygonMumbai } from 'viem/chains'
-import { CONTRACT_ABI, CONTRACT_ADDRESS } from '@/config/contract'
 import { prisma } from './prisma'
 
 

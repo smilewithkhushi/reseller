@@ -1,7 +1,7 @@
 // app/api/products/route.ts
 import { PrismaClient } from '@/generated/prisma'
 import { NextRequest, NextResponse } from 'next/server'
-
+import { notificationService } from '@/lib/notifications'
 
 const prisma = new PrismaClient()
 
@@ -107,6 +107,13 @@ export async function POST(request: NextRequest) {
           select: { id: true, address: true, username: true }
         }
       }
+    })
+
+      await notificationService.sendProductRegistered(ownerId, {
+      productName: product.name,
+      productId: product.productId,
+      transactionHash: product.transactionHash,
+      // ownerName: owner.username || owner.address
     })
 
     // Create audit log
