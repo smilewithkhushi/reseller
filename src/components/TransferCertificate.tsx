@@ -1,4 +1,4 @@
-// components/TransferCertificate.tsx
+
 'use client'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'

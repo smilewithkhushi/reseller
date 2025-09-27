@@ -1,5 +1,6 @@
-// components/ProductAuditTrail.tsx
-'use client'
+'use client';
+
+//auditing trail for later though
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'

@@ -7,14 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RegisterProduct } from '@/components/RegisterProduct'
-import { CreateInvoice } from '@/components/CreateInvoice'
+import CreateInvoice from '@/components/CreateInvoice'
 import { ProductAuditTrail } from '@/components/ProductAuditTrail'
 import { TransferCertificate } from '@/components/TransferCertificate'
+import { CONTRACT_ABI, CONTRACT_ADDRESS } from '@/config/contract'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
   const [activeTab, setActiveTab] = useState('register')
-
+const contractAddress = CONTRACT_ADDRESS;
+const abi = CONTRACT_ABI; 
   if (!isConnected) {
     return (
       <div className="px-4 py-12">
@@ -82,7 +84,10 @@ export default function Home() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <CreateInvoice />
+                <CreateInvoice
+                contractAddress={contractAddress}
+                abi={abi}
+                />
               </CardContent>
             </Card>
           </TabsContent>

@@ -1,0 +1,326 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql" // or "mysql", "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User management (off-chain)
+model User {
+  id        String   @id @default(cuid())
+  address   String   @unique // Ethereum address
+  email     String?  @unique
+  username  String?  @unique
+  avatar    String?
+  bio       String?
+  website   String?
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ownedProducts     Product[]        @relation("ProductOwner")
+  createdProducts   Product[]        @relation("ProductCreator")
+  sentInvoices      Invoice[]        @relation("InvoiceSeller")
+  receivedInvoices  Invoice[]        @relation("InvoiceBuyer")
+  initiatedTransfers TransferCertificate[] @relation("TransferSeller")
+  receivedTransfers TransferCertificate[] @relation("TransferBuyer")
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+
+  @@map("users")
+}
+
+// Product metadata (enhanced off-chain data)
+model Product {
+  id                    String   @id @default(cuid())
+  productId             Int      @unique // On-chain product ID
+  name                  String
+  description           String?
+  category              String?
+  manufacturer          String?
+  model                 String?
+  serialNumber          String?
+  sku                   String?
+  barcode               String?
+  
+  // Metadata
+  metadataHash          String   // IPFS hash stored on-chain
+  metadataUri           String?  // Full IPFS URI
+  images                String[] // Array of image URLs/IPFS hashes
+  documents             String[] // Array of document URLs/IPFS hashes
+  
+  // Blockchain data
+  contractAddress       String   // Smart contract address
+  chainId               Int      // Network ID
+  blockNumber           BigInt?  // Registration block
+  transactionHash       String   // Registration transaction
+  
+  // Ownership
+  initialOwnerId        String
+  initialOwner          User     @relation("ProductCreator", fields: [initialOwnerId], references: [id])
+  currentOwnerId        String
+  currentOwner          User     @relation("ProductOwner", fields: [currentOwnerId], references: [id])
+  
+  // Timestamps
+  registrationTimestamp DateTime
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Status
+  status                ProductStatus @default(ACTIVE)
+  isVerified            Boolean       @default(false)
+  
+  // Relations
+  invoices              Invoice[]
+  transfers             TransferCertificate[]
+  auditLogs            AuditLog[]
+  tags                 ProductTag[]
+
+  @@map("products")
+}
+
+// Invoice records (synchronized with blockchain)
+model Invoice {
+  id              String   @id @default(cuid())
+  invoiceId       Int      @unique // On-chain invoice ID
+  productId       Int      // On-chain product ID
+  
+  // Parties
+  sellerId        String
+  seller          User     @relation("InvoiceSeller", fields: [sellerId], references: [id])
+  buyerId         String
+  buyer           User     @relation("InvoiceBuyer", fields: [buyerId], references: [id])
+  
+  // Invoice details
+  amount          Decimal?
+  currency        String?
+  description     String?
+  paymentTerms    String?
+  dueDate         DateTime?
+  
+  // Blockchain data
+  invoiceHash     String   // Hash stored on-chain
+  lighthouseUri   String   // IPFS URI for PDF
+  contractAddress String
+  chainId         Int
+  blockNumber     BigInt?
+  transactionHash String
+  
+  // Status
+  status              InvoiceStatus @default(PENDING)
+  isTransferComplete  Boolean       @default(false)
+  
+  // Timestamps
+  timestamp       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  product         Product  @relation(fields: [productId], references: [productId])
+  transfers       TransferCertificate[]
+  auditLogs      AuditLog[]
+
+  @@map("invoices")
+}
+
+// Transfer certificates (synchronized with blockchain)
+model TransferCertificate {
+  id              String   @id @default(cuid())
+  certificateId   Int      @unique // On-chain certificate ID
+  productId       Int      // On-chain product ID
+  invoiceId       Int      // On-chain invoice ID
+  
+  // Parties
+  sellerId        String
+  seller          User     @relation("TransferSeller", fields: [sellerId], references: [id])
+  buyerId         String
+  buyer           User     @relation("TransferBuyer", fields: [buyerId], references: [id])
+  
+  // Blockchain data
+  certificateHash String   // Hash stored on-chain
+  lighthouseUri   String   // IPFS URI for certificate
+  contractAddress String
+  chainId         Int
+  blockNumber     BigInt?
+  transactionHash String
+  
+  // Signatures
+  sellerSigned    Boolean  @default(false)
+  buyerSigned     Boolean  @default(false)
+  sellerSignedAt  DateTime?
+  buyerSignedAt   DateTime?
+  
+  // Status
+  isComplete      Boolean  @default(false)
+  completedAt     DateTime?
+  
+  // Timestamps
+  timestamp       DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  product         Product  @relation(fields: [productId], references: [productId])
+  invoice         Invoice  @relation(fields: [invoiceId], references: [invoiceId])
+  auditLogs      AuditLog[]
+
+  @@map("transfer_certificates")
+}
+
+// Audit trail for all actions
+model AuditLog {
+  id              String   @id @default(cuid())
+  
+  // Action details
+  action          AuditAction
+  description     String
+  
+  // Related entities
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+  productId       Int?
+  product         Product? @relation(fields: [productId], references: [productId])
+  invoiceId       Int?
+  invoice         Invoice? @relation(fields: [invoiceId], references: [invoiceId])
+  transferId      Int?
+  transfer        TransferCertificate? @relation(fields: [transferId], references: [certificateId])
+  
+  // Blockchain data
+  transactionHash String?
+  blockNumber     BigInt?
+  chainId         Int?
+  
+  // Metadata
+  metadata        Json?    // Additional data
+  ipAddress       String?
+  userAgent       String?
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+// Product tags for categorization
+model ProductTag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String?
+  
+  // Relations
+  products  Product[]
+  
+  createdAt DateTime @default(now())
+
+  @@map("product_tags")
+}
+
+// User notifications
+model Notification {
+  id        String   @id @default(cuid())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  title     String
+  message   String
+  type      NotificationType
+  data      Json?    // Additional notification data
+  
+  read      Boolean  @default(false)
+  readAt    DateTime?
+  
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+// Blockchain sync status
+model SyncStatus {
+  id            String   @id @default(cuid())
+  chainId       Int      @unique
+  contractAddress String
+  
+  lastSyncBlock BigInt   @default(0)
+  lastSyncAt    DateTime @default(now())
+  
+  isActive      Boolean  @default(true)
+  syncErrors    Json?    // Error logs
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("sync_status")
+}
+
+// API rate limiting
+model ApiUsage {
+  id        String   @id @default(cuid())
+  
+  userId    String?
+  ipAddress String
+  endpoint  String
+  method    String
+  
+  requestCount Int      @default(1)
+  lastRequest  DateTime @default(now())
+  
+  // Rate limiting window
+  windowStart  DateTime @default(now())
+  
+  @@map("api_usage")
+}
+
+// Enums
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  TRANSFERRED
+  DISPUTED
+  LOST
+  DESTROYED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+  DISPUTED
+}
+
+enum AuditAction {
+  PRODUCT_REGISTERED
+  PRODUCT_UPDATED
+  INVOICE_CREATED
+  INVOICE_UPDATED
+  TRANSFER_INITIATED
+  TRANSFER_SIGNED
+  TRANSFER_COMPLETED
+  USER_REGISTERED
+  USER_UPDATED
+  METADATA_UPLOADED
+  DISPUTE_CREATED
+  DISPUTE_RESOLVED
+}
+
+enum NotificationType {
+  PRODUCT_REGISTERED
+  INVOICE_RECEIVED
+  TRANSFER_PENDING
+  TRANSFER_SIGNED
+  TRANSFER_COMPLETED
+  PAYMENT_REMINDER
+  DISPUTE_ALERT
+  SYSTEM_UPDATE
+}

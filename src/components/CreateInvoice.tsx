@@ -172,7 +172,7 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
     try {
       // Create a temporary file path for the upload
       const tempFile = new File([file], filename, { type: file.type })
-        
+        // Define a dummy progress callback if not already defined
         const progressCallback = (progressData: any) => {
           // Optionally handle progress updates here but im not handling :) sorry
         };
@@ -393,7 +393,7 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sold by / Manufactured by/ Retailer *
+              Sold By/Manufactured by/Retailer
             </label>
             <input
               type="text"
