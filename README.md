@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="./public/logo.png" alt="ProofTrail Logo" width="120">
+</div>
+
 # ProofTrail
 
 a decentralized application to track product ownership, invoices, and transfers onchain. built for ethglobal hackathon.
@@ -34,6 +38,16 @@ prooftrail fixes this. every product starts onchain with no owner. the first sal
 2. **first sale** → invoice pdf saved on lighthouse, json hash stored onchain. ownership tied to buyer.  
 3. **resale** → new invoice + transfer certificate generated. both parties sign onchain.  
 4. **audit trail** → chain keeps every record. ui displays full lifecycle of the product.  
+
+---
+
+## visual overview
+
+### product lifecycle
+![Product Lifecycle](./public/lifecycle.png)
+
+### transaction sequence  
+![Transaction Sequence](./public/sequence.png)
 
 ---
 
