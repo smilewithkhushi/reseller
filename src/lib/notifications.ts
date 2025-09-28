@@ -1,4 +1,4 @@
-// lib/notifications.ts - Notification service with Resend
+//will use this later too, rn not used
 import { Resend } from 'resend'
 import { prisma } from './prisma'
 

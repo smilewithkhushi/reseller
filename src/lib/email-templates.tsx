@@ -1,6 +1,4 @@
-
-
-// lib/email-templates.tsx - React Email Templates (Optional Enhancement)
+//will be using it later :
 import {
   Body,
   Button,

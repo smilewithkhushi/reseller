@@ -7,10 +7,11 @@ const prisma = new PrismaClient()
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const certificateId = parseInt(params.id)
+    const { id } = await params
+    const certificateId = parseInt(id)
     const { userId, transactionHash } = await request.json()
 
     const transfer = await prisma.transferCertificate.findUnique({

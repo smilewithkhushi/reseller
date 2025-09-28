@@ -1,7 +1,7 @@
 // lib/db-sync.ts - Blockchain synchronization utility
 
 import { CONTRACT_ABI } from '@/config/contract'
-import { createPublicClient, getContract, http, parseAbiItem } from 'viem'
+import { createPublicClient, http, parseAbiItem } from 'viem'
 import { polygon, polygonMumbai } from 'viem/chains'
 import { prisma } from './prisma'
 
@@ -221,13 +221,12 @@ export class BlockchainSynchronizer {
       const block = await this.client.getBlock({ blockNumber: log.blockNumber })
 
       // Get invoice details from contract
-      const contract = getContract({
+      const invoiceData = await this.client.readContract({
         address: this.config.contractAddress as `0x${string}`,
         abi: CONTRACT_ABI,
-        client: this.client
+        functionName: 'getInvoice',
+        args: [invoiceId]
       })
-
-      const invoiceData = await contract.read.getInvoice([invoiceId])
 
       // Find or create users
       const [sellerUser, buyerUser] = await Promise.all([
@@ -277,13 +276,12 @@ export class BlockchainSynchronizer {
       const block = await this.client.getBlock({ blockNumber: log.blockNumber })
 
       // Get transfer details from contract
-      const contract = getContract({
+      const transferData = await this.client.readContract({
         address: this.config.contractAddress as `0x${string}`,
         abi: CONTRACT_ABI,
-        client: this.client
+        functionName: 'getTransferCertificate',
+        args: [certificateId]
       })
-
-      const transferData = await contract.read.getTransferCertificate([certificateId])
 
       // Find or create users
       const [sellerUser, buyerUser] = await Promise.all([

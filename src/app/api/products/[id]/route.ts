@@ -7,10 +7,11 @@ const prisma = new PrismaClient()
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productId = parseInt(params.id)
+    const { id } = await params
+    const productId = parseInt(id)
 
     const product = await prisma.product.findUnique({
       where: { productId },
@@ -58,10 +59,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productId = parseInt(params.id)
+    const { id } = await params
+    const productId = parseInt(id)
     const body = await request.json()
     const { name, description, category, images, tags, userId } = body
 

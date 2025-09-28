@@ -1,9 +1,23 @@
 import { NextRequest } from 'next/server'
 import { createPublicClient, http } from 'viem'
+import { polygon, polygonMumbai } from 'viem/chains'
 import { CONTRACT_ABI, CONTRACT_ADDRESS } from '@/config/contract'
 
+// Create client with fallback configuration
+const getRpcUrl = () => {
+  return process.env.RPC_URL || 
+         process.env.NEXT_PUBLIC_RPC_URL || 
+         'https://polygon-rpc.com' // fallback
+}
+
+const getChain = () => {
+  const chainId = process.env.NEXT_PUBLIC_CHAIN_ID || '137'
+  return chainId === '80001' ? polygonMumbai : polygon
+}
+
 const client = createPublicClient({
-  transport: http(process.env.RPC_URL)
+  chain: getChain(),
+  transport: http(getRpcUrl())
 })
 
 export async function GET(request: NextRequest) {

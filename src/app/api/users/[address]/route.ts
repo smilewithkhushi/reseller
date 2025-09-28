@@ -7,10 +7,11 @@ const prisma = new PrismaClient()
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) {
   try {
-    const address = params.address.toLowerCase()
+    const { address: addressParam } = await params
+    const address = addressParam.toLowerCase()
 
     const user = await prisma.user.findUnique({
       where: { address },
@@ -59,10 +60,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) {
   try {
-    const address = params.address.toLowerCase()
+    const { address: addressParam } = await params
+    const address = addressParam.toLowerCase()
     const body = await request.json()
     const { username, email, bio, website, avatar } = body
 

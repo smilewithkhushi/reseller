@@ -332,7 +332,7 @@ export function TransferCertificate() {
             />
           </div>
 
-          {invoiceData && (
+          {!!invoiceData && (
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium">Invoice #{(invoiceData as Invoice).invoiceId.toString()}</span>
@@ -400,7 +400,7 @@ export function TransferCertificate() {
             />
           </div>
 
-          {certificateData && (
+          {!!certificateData && (
             <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium">Certificate #{(certificateData as TransferCertificate).certificateId.toString()}</span>
