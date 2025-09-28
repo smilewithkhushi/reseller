@@ -340,13 +340,8 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
       writeContract({
         address: contractAddress as `0x${string}`,
         abi,
-        functionName: 'registerProduct',
-        args: [
-          invoiceData.serialNumber,
-          JSON.stringify(metadata),
-          imageCIDs,
-          invoiceCID
-        ],
+        functionName: 'createInvoice',
+        args: [JSON.stringify(metadata)]
       })
 
     } catch (error) {

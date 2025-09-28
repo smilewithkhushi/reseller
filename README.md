@@ -50,10 +50,13 @@ prooftrail fixes this. every product starts onchain with no owner. the first sal
 ## contracts overview
 
 - **ProductRegistry.sol**  
-  handles product registration and links audit trails.  
+  handles product registration and links audit trails.
+  Deployed contract on Flow (EVM) : 0xBaD417A52CEe777A8E27C350f358828620142c3c 
 
 - **InvoiceManager.sol**  
   creates invoices, stores lighthouse uri + json hash.  
+  Deployed contract on Flow (EVM): 0xb1e7B18fFF13A480c7c31d8f715E8e2a5dB588E2
+
 
 - **TransferCertificate.sol**  
   requires both buyer and seller signatures for ownership transfer.  

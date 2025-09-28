@@ -305,7 +305,6 @@ export function TransferCertificate() {
                   </div>
                 </div>
 
-                {/* Invoice Information Display */}
                 {invoiceData && (
                   <InvoiceDisplay invoice={invoiceData as Invoice} userAddress={address} />
                 )}
@@ -351,7 +350,7 @@ export function TransferCertificate() {
                     )}
                   </Button>
 
-                  {invoiceData && (invoiceData as Invoice).seller !== address && (
+                  {invoiceData && (invoiceData as Invoice)?.seller !== address && (
                     <Alert>
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>

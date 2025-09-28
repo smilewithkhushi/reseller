@@ -1,9 +1,9 @@
-// app/page.tsx
+
 'use client'
 
 import CreateInvoice from '@/components/CreateInvoice'
 import { ProductAuditTrail } from '@/components/ProductAuditTrail'
-import { RegisterProduct } from '@/components/RegisterProduct'
+import RegisterProduct from '@/components/RegisterProduct'
 import { TransferCertificate } from '@/components/TransferCertificate'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -42,7 +42,7 @@ export default function Home() {
               <Package className="w-8 h-8 text-blue-600" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mb-3">
-              Product Provenance System
+              ProofRail : Product Provenance System
             </h1>
             <p className="text-slate-600 mb-8">
               Connect your wallet to access the complete product management dashboard
@@ -197,7 +197,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Product Provenance Dashboard</h1>
+              <h1 className="text-2xl font-bold text-slate-900">ProofRail : Product Provenance Dashboard</h1>
               <p className="text-sm text-slate-600">Manage your blockchain-based product ecosystem</p>
             </div>
             <div className="flex items-center space-x-3">
