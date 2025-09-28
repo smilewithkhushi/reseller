@@ -107,15 +107,26 @@ export function TransferCertificate() {
     isPending: isSigning 
   } = useWriteContract()
 
-  const { isLoading: isSignConfirming, isSuccess: isSignSuccess } = useTransactionReceipt({
+  const { isLoading: isSignConfirming, isSuccess: isSignSuccess } = useWaitForTransactionReceipt({
     hash: signData,
   })
 
   const uploadCertificateToLighthouse = async (certificateData: any): Promise<string> => {
-    // Mock implementation - replace with actual Lighthouse integration
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    const hash = 'Qm' + Math.random().toString(36).substring(2, 15)
-    return `https://gateway.lighthouse.storage/ipfs/${hash}`
+    const lighthouseApiKey = process.env.NEXT_PUBLIC_LIGHTHOUSE_API_KEY
+    if (!lighthouseApiKey) {
+      throw new Error('Lighthouse API key is not configured')
+    }
+
+    try {
+      // In a real implementation, you would use lighthouse SDK here
+      // For now, using a mock implementation
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      const hash = 'Qm' + Math.random().toString(36).substring(2, 15)
+      return `https://gateway.lighthouse.storage/ipfs/${hash}`
+    } catch (error) {
+      console.error('Lighthouse upload error:', error)
+      throw new Error('Failed to upload certificate to Lighthouse')
+    }
   }
 
   const handleInitiateTransfer = async () => {
@@ -393,7 +404,10 @@ export function TransferCertificate() {
 
                 {/* Certificate Information Display */}
                 {certificateData && (
-                  <CertificateDisplay certificate={certificateData as TransferCertificate} userAddress={address} />
+                  <CertificateDisplay 
+                    certificate={certificateData as TransferCertificate} 
+                    userAddress={address} 
+                  />
                 )}
 
                 {certificateId && !certificateData && !certificateLoading && (
@@ -420,7 +434,7 @@ export function TransferCertificate() {
 
                   <Button 
                     onClick={handleSignTransfer}
-                    disabled={isLoading || !certificateData || isTransferCompleteOrNotAuthorized()}
+                    disabled={isLoading || !certificateData || getSigningDisabledReason() !== null}
                     className="w-full h-12"
                     size="lg"
                   >
@@ -437,13 +451,11 @@ export function TransferCertificate() {
                     )}
                   </Button>
 
-                  {certificateData && isTransferCompleteOrNotAuthorized() && (
+                  {certificateData && getSigningDisabledReason() && (
                     <Alert>
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
-                        {(certificateData as TransferCertificate).isComplete 
-                          ? "This transfer is already complete."
-                          : "You are not authorized to sign this transfer."}
+                        {getSigningDisabledReason()}
                       </AlertDescription>
                     </Alert>
                   )}
