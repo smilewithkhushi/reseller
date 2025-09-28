@@ -47,7 +47,7 @@ prooftrail fixes this. every product starts onchain with no owner. the first sal
 ![Product Lifecycle](./public/lifecycle.png)
 
 ### transaction sequence  
-![Transaction Sequence](./public/sequence.png)
+![ Sequence Diagram](./public/sequence.png)
 
 ---
 
@@ -96,21 +96,3 @@ npx hardhat run scripts/deploy.js --network polygonMumbai
 
 ⸻
 
-hackathon relevance
-
-this project is built for ethglobal hackathon to demonstrate how blockchain can solve a real pain:
-	•	transparency in product lifecycle
-	•	trust in invoices and ownership transfers
-	•	simplicity in building with next.js + wagmi + rainbowkit + lighthouse
-
-it shows how decentralized infra can be used for problems outside the usual defi space: supply chains, luxury goods, secondary markets, and even digital assets with real-world ties.
-
-⸻
-
-roadmap
-	•	add zk-based identity checks for buyers/sellers
-	•	expand to multi-chain deployments
-	•	ui to visualize product journey as a timeline
-	•	integration with payment rails for automated invoicing
-
-⸻
