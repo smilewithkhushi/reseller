@@ -1,16 +1,48 @@
-// components/CreateInvoice.tsx
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import lighthouse from '@lighthouse-web3/sdk'
-import { Camera, Upload, FileText, Image, AlertCircle, CheckCircle, Loader2, X } from 'lucide-react'
+import { 
+  Camera, 
+  Upload, 
+  FileText, 
+  Image, 
+  AlertCircle, 
+  CheckCircle, 
+  Loader2, 
+  X,
+  Package,
+  Calendar,
+  DollarSign,
+  Hash,
+  Building,
+  Tag,
+  Info,
+  Plus,
+  Eye,
+  Download,
+  Cloud,
+  Shield,
+  Sparkles
+} from 'lucide-react'
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 // Types
 interface AssetImage {
   file: File
   preview: string
   name: string
+  id: string
 }
 
 interface LighthouseUploadResponse {
@@ -67,7 +99,7 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
     expiryDate: '',
     category: '',
     price: '',
-    quantity: '',
+    quantity: '1',
     serialNumber: '',
     assetImages: [],
     invoicePdf: null,
@@ -80,11 +112,20 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
   const [storageProofs, setStorageProofs] = useState<StorageProof[]>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const [isRegistering, setIsRegistering] = useState(false)
+  const [activeTab, setActiveTab] = useState('basic')
 
   // Refs
   const imageInputRef = useRef<HTMLInputElement>(null)
   const pdfInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+
+  // Load Lighthouse API key from environment
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_LIGHTHOUSE_API_KEY
+    if (apiKey) {
+      setLighthouseApiKey(apiKey)
+    }
+  }, [])
 
   // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -107,7 +148,8 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
         newImages.push({
           file,
           preview,
-          name: file.name
+          name: file.name,
+          id: Math.random().toString(36).substr(2, 9)
         })
       }
     })
@@ -127,7 +169,8 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
     const newImage: AssetImage = {
       file,
       preview,
-      name: `camera-${Date.now()}.jpg`
+      name: `camera-${Date.now()}.jpg`,
+      id: Math.random().toString(36).substr(2, 9)
     }
 
     setInvoiceData(prev => ({
@@ -148,10 +191,10 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
   }
 
   // Remove image
-  const removeImage = (index: number) => {
+  const removeImage = (id: string) => {
     setInvoiceData(prev => ({
       ...prev,
-      assetImages: prev.assetImages.filter((_, i) => i !== index)
+      assetImages: prev.assetImages.filter(img => img.id !== id)
     }))
   }
 
@@ -166,23 +209,18 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
   // Upload file to Lighthouse
   const uploadToLighthouse = async (file: File, filename: string): Promise<LighthouseUploadResponse> => {
     if (!lighthouseApiKey) {
-      throw new Error('Lighthouse API key is required')
+      throw new Error('Lighthouse API key is not configured')
     }
 
     try {
-      // Create a temporary file path for the upload
       const tempFile = new File([file], filename, { type: file.type })
-        // Define a dummy progress callback if not already defined
-        const progressCallback = (progressData: any) => {
-          // Optionally handle progress updates here but im not handling :) sorry
-        };
+      const progressCallback = (progressData: any) => {
+        // Handle progress updates
+      }
 
-
-        const uploadResponse = await lighthouse.upload([tempFile], lighthouseApiKey, undefined, progressCallback);
-        console.log('File Status:', uploadResponse);
-
-        console.log('Visit at https://gateway.lighthouse.storage/ipfs/' + uploadResponse.data.Hash);
-
+      const uploadResponse = await lighthouse.upload([tempFile], lighthouseApiKey, undefined, progressCallback)
+      console.log('File Status:', uploadResponse)
+      console.log('Visit at https://gateway.lighthouse.storage/ipfs/' + uploadResponse.data.Hash)
 
       return uploadResponse as LighthouseUploadResponse
     } catch (error) {
@@ -194,7 +232,7 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
   // Upload all files to Lighthouse
   const uploadAllFiles = async (): Promise<StorageProof[]> => {
     if (!lighthouseApiKey) {
-      throw new Error('Please enter your Lighthouse API key')
+      throw new Error('Lighthouse API key is not configured')
     }
 
     setIsUploading(true)
@@ -250,17 +288,16 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
   // Register product with blockchain
   const registerProduct = async () => {
     if (!isConnected || !address) {
-      alert('Please connect your wallet')
       return
     }
 
     if (!lighthouseApiKey) {
-      alert('Please enter your Lighthouse API key')
+      setUploadErrors(['Lighthouse API key is not configured. Please check your environment variables.'])
       return
     }
 
     if (invoiceData.assetImages.length === 0 && !invoiceData.invoicePdf) {
-      alert('Please add at least one asset image or invoice PDF')
+      setUploadErrors(['Please add at least one asset image or invoice PDF'])
       return
     }
 
@@ -314,404 +351,746 @@ export default function CreateInvoice({ contractAddress, abi }: CreateInvoicePro
 
     } catch (error) {
       console.error('Error registering product:', error)
-      alert(`Error: ${error instanceof Error ? error.message : 'Failed to register product'}`)
+      setUploadErrors([error instanceof Error ? error.message : 'Failed to register product'])
     } finally {
       setIsRegistering(false)
     }
   }
 
-  // Check deal status for uploaded files
-  const checkDealStatus = async (cid: string) => {
-    try {
-      const dealStatus = await lighthouse.dealStatus(cid)
-      return dealStatus
-    } catch (error) {
-      console.error('Error checking deal status:', error)
-      return null
-    }
-  }
+  const isFormValid = invoiceData.productName && invoiceData.serialNumber && 
+                     (invoiceData.assetImages.length > 0 || invoiceData.invoicePdf)
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Create Product Invoice</h2>
-
-      {/* Lighthouse API Key Input */}
-      <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <label className="block text-sm font-medium text-blue-900 mb-2">
-          Lighthouse API Key
-        </label>
-        <input
-          type="password"
-          value={lighthouseApiKey}
-          onChange={(e) => setLighthouseApiKey(e.target.value)}
-          placeholder="Enter your Lighthouse API key for decentralized storage"
-          className="w-full p-3 border border-blue-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-        />
-        <p className="text-xs text-blue-600 mt-1">
-          Get your API key from{' '}
-          <a 
-            href="https://files.lighthouse.storage/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="underline hover:text-blue-800"
-          >
-            Lighthouse Files Dashboard
-          </a>
-        </p>
-      </div>
-
-      <form className="space-y-6">
-        {/* Basic Product Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Product Name *
-            </label>
-            <input
-              type="text"
-              name="productName"
-              value={invoiceData.productName}
-              onChange={handleInputChange}
-              required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
+    <div className="space-y-6">
+      {/* Header Section */}
+      <Card className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-green-50 to-emerald-50 opacity-50" />
+        <CardHeader className="relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <div className="p-2 bg-green-500 rounded-lg">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                Create Product Invoice
+              </CardTitle>
+              <CardDescription className="mt-2">
+                Register a new product with decentralized storage and blockchain verification
+              </CardDescription>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600">
+              <Shield className="h-4 w-4" />
+              Blockchain Secured
+            </div>
           </div>
+        </CardHeader>
+      </Card>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Serial Number *
-            </label>
-            <input
-              type="text"
-              name="serialNumber"
-              value={invoiceData.serialNumber}
-              onChange={handleInputChange}
-              required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+      {/* API Key Status */}
+      {!lighthouseApiKey && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Lighthouse API key is not configured. Please set NEXT_PUBLIC_LIGHTHOUSE_API_KEY in your environment variables.
+          </AlertDescription>
+        </Alert>
+      )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sold By/Manufactured by/Retailer
-            </label>
-            <input
-              type="text"
-              name="manufacturer"
-              value={invoiceData.manufacturer}
-              onChange={handleInputChange}
-              required
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+      {/* Form Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="basic" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Basic Info
+          </TabsTrigger>
+          <TabsTrigger value="details" className="flex items-center gap-2">
+            <Info className="h-4 w-4" />
+            Details
+          </TabsTrigger>
+          <TabsTrigger value="media" className="flex items-center gap-2">
+            <Image className="h-4 w-4" />
+            Media
+            {(invoiceData.assetImages.length > 0 || invoiceData.invoicePdf) && (
+              <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 text-xs">
+                {invoiceData.assetImages.length + (invoiceData.invoicePdf ? 1 : 0)}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="review" className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Review
+          </TabsTrigger>
+        </TabsList>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Batch Number
-            </label>
-            <input
-              type="text"
-              name="batchNumber"
-              value={invoiceData.batchNumber}
-              onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category
-            </label>
-            <select
-              name="category"
-              value={invoiceData.category}
-              onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select Category</option>
-              <option value="electronics">Electronics</option>
-              <option value="pharmaceuticals">Pharmaceuticals</option>
-              <option value="food">Food & Beverages</option>
-              <option value="cosmetics">Cosmetics</option>
-              <option value="automotive">Automotive</option>
-              <option value="textiles">Textiles</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Price
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              name="price"
-              value={invoiceData.price}
-              onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Manufacturing Date
-            </label>
-            <input
-              type="date"
-              name="manufacturingDate"
-              value={invoiceData.manufacturingDate}
-              onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Expiry Date
-            </label>
-            <input
-              type="date"
-              name="expiryDate"
-              value={invoiceData.expiryDate}
-              onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Product Description */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Product Description
-          </label>
-          <textarea
-            name="productDescription"
-            value={invoiceData.productDescription}
-            onChange={handleInputChange}
-            rows={4}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-
-        {/* Asset Images Section */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset Images</h3>
-          
-          {/* Image Upload Buttons */}
-          <div className="flex flex-wrap gap-4 mb-4">
-            <button
-              type="button"
-              onClick={() => imageInputRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <Image size={20} />
-              Upload Images
-            </button>
-
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-            >
-              <Camera size={20} />
-              Take Photo
-            </button>
-          </div>
-
-          {/* Hidden Input Elements */}
-          <input
-            ref={imageInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleImageSelect}
-            className="hidden"
-          />
-          
-          <input
-            ref={cameraInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleCameraCapture}
-            className="hidden"
-          />
-
-          {/* Image Preview Grid */}
-          {invoiceData.assetImages.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              {invoiceData.assetImages.map((image, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={image.preview}
-                    alt={`Asset ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-md border"
+        {/* Basic Information Tab */}
+        <TabsContent value="basic" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Basic Product Information
+              </CardTitle>
+              <CardDescription>
+                Enter the essential product details
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="productName" className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Product Name *
+                  </Label>
+                  <Input
+                    id="productName"
+                    name="productName"
+                    value={invoiceData.productName}
+                    onChange={handleInputChange}
+                    placeholder="Enter product name"
+                    required
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="serialNumber" className="flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    Serial Number *
+                  </Label>
+                  <Input
+                    id="serialNumber"
+                    name="serialNumber"
+                    value={invoiceData.serialNumber}
+                    onChange={handleInputChange}
+                    placeholder="Enter unique serial number"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="manufacturer" className="flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    Manufacturer/Retailer *
+                  </Label>
+                  <Input
+                    id="manufacturer"
+                    name="manufacturer"
+                    value={invoiceData.manufacturer}
+                    onChange={handleInputChange}
+                    placeholder="Company or manufacturer name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="category" className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Category
+                  </Label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={invoiceData.category}
+                    onChange={handleInputChange}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <X size={16} />
-                  </button>
-                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white px-2 py-1 text-xs rounded">
-                    {image.name}
+                    <option value="">Select Category</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="pharmaceuticals">Pharmaceuticals</option>
+                    <option value="food">Food & Beverages</option>
+                    <option value="cosmetics">Cosmetics</option>
+                    <option value="automotive">Automotive</option>
+                    <option value="textiles">Textiles</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="productDescription">Product Description</Label>
+                <Textarea
+                  id="productDescription"
+                  name="productDescription"
+                  value={invoiceData.productDescription}
+                  onChange={handleInputChange}
+                  placeholder="Describe the product features, specifications, etc."
+                  rows={4}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Details Tab */}
+        <TabsContent value="details" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5" />
+                Product Details
+              </CardTitle>
+              <CardDescription>
+                Additional product information and specifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="batchNumber">Batch Number</Label>
+                  <Input
+                    id="batchNumber"
+                    name="batchNumber"
+                    value={invoiceData.batchNumber}
+                    onChange={handleInputChange}
+                    placeholder="Batch or lot number"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    name="quantity"
+                    type="number"
+                    min="1"
+                    value={invoiceData.quantity}
+                    onChange={handleInputChange}
+                    placeholder="Product quantity"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="price" className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Price
+                  </Label>
+                  <Input
+                    id="price"
+                    name="price"
+                    type="number"
+                    step="0.01"
+                    value={invoiceData.price}
+                    onChange={handleInputChange}
+                    placeholder="Product price"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="manufacturingDate" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Manufacturing Date
+                  </Label>
+                  <Input
+                    id="manufacturingDate"
+                    name="manufacturingDate"
+                    type="date"
+                    value={invoiceData.manufacturingDate}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expiryDate" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Expiry Date
+                  </Label>
+                  <Input
+                    id="expiryDate"
+                    name="expiryDate"
+                    type="date"
+                    value={invoiceData.expiryDate}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Media Tab */}
+        <TabsContent value="media" className="space-y-6">
+          {/* Asset Images Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="h-5 w-5" />
+                Product Images
+              </CardTitle>
+              <CardDescription>
+                Upload photos of your product for verification and documentation
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Upload Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="h-24 border-dashed border-2 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                >
+                  <div className="text-center">
+                    <Upload className="h-6 w-6 mx-auto mb-2 text-slate-400" />
+                    <span className="text-sm font-medium">Upload Images</span>
+                    <p className="text-xs text-slate-500">JPG, PNG up to 10MB</p>
+                  </div>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="h-24 border-dashed border-2 hover:border-green-300 hover:bg-green-50 transition-colors"
+                >
+                  <div className="text-center">
+                    <Camera className="h-6 w-6 mx-auto mb-2 text-slate-400" />
+                    <span className="text-sm font-medium">Take Photo</span>
+                    <p className="text-xs text-slate-500">Use device camera</p>
+                  </div>
+                </Button>
+              </div>
+
+              {/* Hidden Inputs */}
+              <input
+                ref={imageInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleCameraCapture}
+                className="hidden"
+              />
+
+              {/* Image Preview Grid */}
+              {invoiceData.assetImages.length > 0 && (
+                <div>
+                  <Label className="mb-3 block">Uploaded Images ({invoiceData.assetImages.length})</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {invoiceData.assetImages.map((image) => (
+                      <div key={image.id} className="relative group">
+                        <div className="aspect-square rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-300 transition-colors">
+                          <img
+                            src={image.preview}
+                            alt={image.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeImage(image.id)}
+                          className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                        <p className="text-xs text-slate-600 mt-1 truncate">{image.name}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Invoice PDF Section */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Invoice PDF</h3>
-          
-          <button
-            type="button"
-            onClick={() => pdfInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors mb-4"
-          >
-            <FileText size={20} />
-            Upload PDF Invoice
-          </button>
+          {/* Invoice PDF Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Invoice PDF
+              </CardTitle>
+              <CardDescription>
+                Upload the official invoice document
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!invoiceData.invoicePdf ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => pdfInputRef.current?.click()}
+                  className="w-full h-24 border-dashed border-2 hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                >
+                  <div className="text-center">
+                    <FileText className="h-6 w-6 mx-auto mb-2 text-slate-400" />
+                    <span className="text-sm font-medium">Upload PDF Invoice</span>
+                    <p className="text-xs text-slate-500">PDF files up to 25MB</p>
+                  </div>
+                </Button>
+              ) : (
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <FileText className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{invoiceData.invoicePdf.name}</p>
+                      <p className="text-sm text-slate-600">
+                        {(invoiceData.invoicePdf.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => pdfInputRef.current?.click()}
+                    >
+                      Replace
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={removePdf}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-          <input
-            ref={pdfInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handlePdfSelect}
-            className="hidden"
-          />
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handlePdfSelect}
+                className="hidden"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {invoiceData.invoicePdf && (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-md">
-              <FileText size={24} className="text-purple-600" />
-              <div className="flex-1">
-                <p className="font-medium">{invoiceData.invoicePdf.name}</p>
-                <p className="text-sm text-gray-600">
-                  {(invoiceData.invoicePdf.size / (1024 * 1024)).toFixed(2)} MB
-                </p>
+        {/* Review Tab */}
+        <TabsContent value="review" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                Review & Submit
+              </CardTitle>
+              <CardDescription>
+                Review your product information before submitting to the blockchain
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-blue-700">Product Info</p>
+                        <p className="text-lg font-bold text-blue-900">
+                          {invoiceData.productName || 'Not set'}
+                        </p>
+                        <p className="text-sm text-blue-600">
+                          #{invoiceData.serialNumber || 'No serial'}
+                        </p>
+                      </div>
+                      <Package className="h-8 w-8 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-green-700">Media Files</p>
+                        <p className="text-lg font-bold text-green-900">
+                          {invoiceData.assetImages.length + (invoiceData.invoicePdf ? 1 : 0)}
+                        </p>
+                        <p className="text-sm text-green-600">
+                          {invoiceData.assetImages.length} images, {invoiceData.invoicePdf ? 1 : 0} PDF
+                        </p>
+                      </div>
+                      <Image className="h-8 w-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-purple-50 border-purple-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-purple-700">Price</p>
+                        <p className="text-lg font-bold text-purple-900">
+                          ${invoiceData.price || '0.00'}
+                        </p>
+                        <p className="text-sm text-purple-600">
+                          Qty: {invoiceData.quantity || 1}
+                        </p>
+                      </div>
+                      <DollarSign className="h-8 w-8 text-purple-500" />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <button
-                type="button"
-                onClick={removePdf}
-                className="p-1 text-red-600 hover:bg-red-100 rounded"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          )}
-        </div>
 
-        {/* Upload Progress */}
-        {isUploading && (
-          <div className="border-t pt-6">
-            <h4 className="text-md font-semibold text-gray-900 mb-3">Uploading to Lighthouse Storage...</h4>
+              {/* Validation Checklist */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Validation Checklist</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      {invoiceData.productName ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <span className={invoiceData.productName ? 'text-green-700' : 'text-red-700'}>
+                        Product name provided
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      {invoiceData.serialNumber ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <span className={invoiceData.serialNumber ? 'text-green-700' : 'text-red-700'}>
+                        Serial number provided
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      {(invoiceData.assetImages.length > 0 || invoiceData.invoicePdf) ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <span className={(invoiceData.assetImages.length > 0 || invoiceData.invoicePdf) ? 'text-green-700' : 'text-red-700'}>
+                        Media files uploaded
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      {lighthouseApiKey ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <span className={lighthouseApiKey ? 'text-green-700' : 'text-red-700'}>
+                        Storage configuration ready
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      {isConnected ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      )}
+                      <span className={isConnected ? 'text-green-700' : 'text-red-700'}>
+                        Wallet connected
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Submit Section */}
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="p-6">
+                  <div className="text-center space-y-4">
+                    <div className="flex items-center justify-center gap-2 text-green-700">
+                      <Sparkles className="h-5 w-5" />
+                      <span className="font-medium">Ready to register on blockchain</span>
+                    </div>
+                    
+                    <Button
+                      onClick={registerProduct}
+                      disabled={!isFormValid || !isConnected || isRegistering || isUploading || isWritePending || isConfirming}
+                      className="w-full h-12 text-lg"
+                      size="lg"
+                    >
+                      {(isRegistering || isUploading) ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          {isUploading ? 'Uploading to Lighthouse...' : 'Uploading & Registering...'}
+                        </>
+                      ) : isWritePending ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Confirming Transaction...
+                        </>
+                      ) : isConfirming ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Transaction Confirming...
+                        </>
+                      ) : (
+                        <>
+                          <Cloud className="h-5 w-5 mr-2" />
+                          Register Product on Blockchain
+                        </>
+                      )}
+                    </Button>
+
+                    {!isConnected && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Please connect your wallet to register a product
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {!isFormValid && isConnected && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Please complete all required fields and upload at least one file
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Upload Progress */}
+      {isUploading && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Cloud className="h-5 w-5" />
+              Uploading to Lighthouse Storage
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {Object.entries(uploadProgress).map(([filename, progress]) => (
-              <div key={filename} className="mb-2">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>{filename}</span>
+              <div key={filename} className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">{filename}</span>
                   <span>{progress}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
+                <Progress value={progress} className="h-2" />
               </div>
             ))}
-          </div>
-        )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Storage Proofs */}
-        {storageProofs.length > 0 && (
-          <div className="border-t pt-6">
-            <h4 className="text-md font-semibold text-gray-900 mb-3">Storage Proofs</h4>
-            <div className="space-y-2">
+      {/* Storage Proofs */}
+      {storageProofs.length > 0 && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-700">
+              <CheckCircle className="h-5 w-5" />
+              Storage Proofs
+            </CardTitle>
+            <CardDescription>
+              Files successfully uploaded to decentralized storage
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
               {storageProofs.map((proof, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 bg-green-50 rounded-md">
-                  <CheckCircle size={20} className="text-green-600" />
-                  <div className="flex-1">
-                    <p className="font-medium">{proof.name}</p>
-                    <p className="text-sm text-gray-600">CID: {proof.cid}</p>
-                    <p className="text-xs text-gray-500">Size: {proof.size} bytes</p>
+                <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-green-200">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-green-900">{proof.name}</p>
+                      <p className="text-sm text-green-700">CID: {proof.cid.slice(0, 20)}...</p>
+                      <p className="text-xs text-green-600">Size: {proof.size} bytes</p>
+                    </div>
                   </div>
-                  <a
-                    href={`https://gateway.lighthouse.storage/ipfs/${proof.cid}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 text-sm underline"
-                  >
-                    View on IPFS
-                  </a>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      <a
+                        href={`https://gateway.lighthouse.storage/ipfs/${proof.cid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </a>
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Upload Errors */}
-        {uploadErrors.length > 0 && (
-          <div className="border-t pt-6">
-            <h4 className="text-md font-semibold text-red-900 mb-3">Upload Errors</h4>
+      {/* Error Messages */}
+      {uploadErrors.length > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-700">
+              <AlertCircle className="h-5 w-5" />
+              Upload Errors
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-2">
               {uploadErrors.map((error, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 bg-red-50 rounded-md">
-                  <AlertCircle size={20} className="text-red-600" />
-                  <p className="text-red-800 text-sm">{error}</p>
-                </div>
+                <Alert key={index} variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               ))}
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Transaction Status */}
-        {writeError && (
-          <div className="flex items-center gap-3 p-3 bg-red-50 rounded-md">
-            <AlertCircle size={20} className="text-red-600" />
-            <p className="text-red-800">Transaction Error: {writeError.message}</p>
-          </div>
-        )}
+      {/* Transaction Status */}
+      {writeError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Transaction Error: {writeError.message}
+          </AlertDescription>
+        </Alert>
+      )}
 
-        {hash && (
-          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-md">
-            <CheckCircle size={20} className="text-blue-600" />
-            <p className="text-blue-800">
-              Transaction Hash: {hash}
-              {isConfirming && <span className="ml-2">(Confirming...)</span>}
-              {isConfirmed && <span className="ml-2 text-green-600">(Confirmed!)</span>}
-            </p>
-          </div>
-        )}
-
-        {/* Submit Button */}
-        <div className="border-t pt-6">
-          <button
-            type="button"
-            onClick={registerProduct}
-            disabled={!isConnected || isRegistering || isUploading || isWritePending || isConfirming}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {(isRegistering || isUploading || isWritePending || isConfirming) && (
-              <Loader2 size={20} className="animate-spin" />
-            )}
-            {isRegistering ? 'Uploading & Registering...' : 
-             isUploading ? 'Uploading to Lighthouse...' :
-             isWritePending ? 'Confirming Transaction...' :
-             isConfirming ? 'Transaction Confirming...' :
-             'Register Product'}
-          </button>
-
-          {!isConnected && (
-            <p className="text-center text-red-600 text-sm mt-2">
-              Please connect your wallet to register a product
-            </p>
-          )}
-        </div>
-      </form>
+      {hash && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-blue-900">Transaction Submitted</p>
+                <p className="text-sm text-blue-700 font-mono">{hash}</p>
+                {isConfirming && (
+                  <p className="text-sm text-blue-600">Confirming on blockchain...</p>
+                )}
+                {isConfirmed && (
+                  <p className="text-sm text-green-600 font-medium">✓ Confirmed!</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
