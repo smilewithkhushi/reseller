@@ -89,10 +89,5 @@ run locally
 
 npm run dev
 
-deploy contracts
-
-npx hardhat run scripts/deploy.js --network polygonMumbai
-
-
-⸻
+```
 
