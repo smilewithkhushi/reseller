@@ -1,4 +1,4 @@
-// app/api/sync/route.ts
+
 import { PrismaClient } from '@/generated/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 import { createPublicClient, http, parseAbiItem } from 'viem'
@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
   try {
     const { chainId, contractAddress, fromBlock } = await request.json()
 
-    // Create viem client
     const client = createPublicClient({
       chain: polygon, // Configure based on chainId
       transport: http()
