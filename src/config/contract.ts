@@ -2,6 +2,15 @@
 export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x...'
 
 export const CONTRACT_ABI = [
+
+	{
+		"inputs": [{ "type": "string", "name": "_serialNumber" }],
+		"name": "registerProduct",
+		"outputs": [{ "type": "uint256" }],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+
 	{
 		"anonymous": false,
 		"inputs": [
@@ -926,54 +935,54 @@ export const CONTRACT_ABI = [
 
 // Type definitions for better TypeScript support
 export interface Product {
-  productId: bigint
-  initialOwner: string
-  currentOwner: string
-  registrationTimestamp: bigint
-  metadataHash: string
-  isRegistered: boolean
+	productId: bigint
+	initialOwner: string
+	currentOwner: string
+	registrationTimestamp: bigint
+	metadataHash: string
+	isRegistered: boolean
 }
 
 export interface Invoice {
-  invoiceId: bigint
-  productId: bigint
-  seller: string
-  buyer: string
-  invoiceHash: string
-  lighthouseURI: string
-  timestamp: bigint
-  isTransferComplete: boolean
+	invoiceId: bigint
+	productId: bigint
+	seller: string
+	buyer: string
+	invoiceHash: string
+	lighthouseURI: string
+	timestamp: bigint
+	isTransferComplete: boolean
 }
 
 export interface TransferCertificate {
-  certificateId: bigint
-  productId: bigint
-  invoiceId: bigint
-  seller: string
-  buyer: string
-  certificateHash: string
-  lighthouseURI: string
-  sellerSigned: boolean
-  buyerSigned: boolean
-  timestamp: bigint
-  isComplete: boolean
+	certificateId: bigint
+	productId: bigint
+	invoiceId: bigint
+	seller: string
+	buyer: string
+	certificateHash: string
+	lighthouseURI: string
+	sellerSigned: boolean
+	buyerSigned: boolean
+	timestamp: bigint
+	isComplete: boolean
 }
 
 // Network configurations
 export const SUPPORTED_CHAINS = {
-  1: 'Ethereum Mainnet',
-  137: 'Polygon',
-  80001: 'Polygon Mumbai',
-  8453: 'Base',
-  84532: 'Base Sepolia'
+	1: 'Ethereum Mainnet',
+	137: 'Polygon',
+	80001: 'Polygon Mumbai',
+	8453: 'Base',
+	84532: 'Base Sepolia'
 } as const
 
 // Contract deployment addresses by network
 export const CONTRACT_ADDRESSES = {
-  1: '0x...', // Ethereum Mainnet
-  137: '0x...', // Polygon
-  80001: '0x...', // Polygon Mumbai  
-  8453: '0x...', // Base
-  84532: '0x...', // Base Sepolia
-  31337: '0x5FbDB2315678afecb367f032d93F642f64180aa3' // Local Hardhat
+	1: '0x...', // Ethereum Mainnet
+	137: '0x...', // Polygon
+	80001: '0x...', // Polygon Mumbai  
+	8453: '0x...', // Base
+	84532: '0x...', // Base Sepolia
+	31337: '0x5FbDB2315678afecb367f032d93F642f64180aa3' // Local Hardhat
 } as const
