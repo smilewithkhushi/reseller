@@ -75,19 +75,4 @@ prooftrail fixes this. every product starts onchain with no owner. the first sal
 - **TransferCertificate.sol**  
   requires both buyer and seller signatures for ownership transfer.  
 
----
-
-## for developers
-
-### install
-```bash
-git clone https://github.com/yourrepo/prooftrail
-cd prooftrail
-npm install
-
-run locally
-
-npm run dev
-
-```
 
